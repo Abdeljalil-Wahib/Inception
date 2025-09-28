@@ -1,0 +1,53 @@
+services:
+  mariadb:
+    container_name: mariadb
+    image: my-mariadb
+    build:
+      context: ./requirements/mariadb
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      timeout: 20s
+      retries: 10
+      start_period: 10s
+    volumes:
+      - /home/awahib/data/mariadb:/var/lib/mysql
+    networks:
+      - inception
+    env_file:
+      - .env
+    restart: on-failure
+
+  wordpress:
+    container_name: wordpress
+    image: my-wordpress
+    build:
+      context: ./requirements/wordpress
+    depends_on:
+      mariadb:
+        condition: service_healthy
+    volumes:
+      - /home/awahib/data/wordpress:/var/www/html
+    networks:
+      - inception
+    env_file:
+      - .env
+    restart: on-failure
+
+  nginx:
+    container_name: nginx
+    image: my-nginx
+    build:
+      context: ./requirements/nginx
+    depends_on:
+      - wordpress
+    ports:
+      - "443:443"
+    volumes:
+      - /home/awahib/data/wordpress:/var/www/html
+    networks:
+      - inception
+    restart: on-failure
+
+networks:
+  inception:
+    driver: bridge
